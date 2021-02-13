@@ -1,1 +1,17 @@
-[{"message":"Hi!","sender":1613120611629,"time":1613244154919},{"message":"Hello","sender":1613120611627,"time":1613244164223},{"message":"How are you?","sender":1613120611629,"time":1613244174827}]
+[
+    {
+        "message": "Hi!",
+        "sender": 1613120611629,
+        "time": 1613244154919
+    },
+    {
+        "message": "Hello",
+        "sender": 1613120611627,
+        "time": 1613244164223
+    },
+    {
+        "message": "How are you?",
+        "sender": 1613120611629,
+        "time": 1613244174827
+    }
+]
