@@ -2,40 +2,7 @@
 require('dotenv').config();
 const Express = require("express");
 const BodyParser = require("body-parser");
-var cors = require('cors')
-
 const fs = require('fs')
-const path = require('path');
-var app = Express();
-
-app.use(BodyParser.json({ limit: '10mb', extended: true }));
-// let allowCrossDomain = function (req, res, next) {
-//     var allowedOrigins = [process.env.DEV_TEST, "http://192.168.0.241:3001"];
-//     var origin = req.headers.origin;
-//     console.log('origin', origin)
-//     if (allowedOrigins.indexOf(origin) > -1) {
-//         res.setHeader('Access-Control-Allow-Origin', origin);
-//     }
-//     res.header('Access-Control-Allow-Credentials', "true");
-//     res.header('Access-Control-Allow-Headers',  "Origin, X-Requested-With, Content-Type, Accept");
-//     next();
-// }
-// app.use(allowCrossDomain);
-
-app.use(function(req, res, next) {
-    res.header("Access-Control-Allow-Origin", "http://localhost:8080"); // update to match the domain you will make the request from
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-    next();
-  });
-
-app.use(BodyParser.urlencoded({ extended: true }));
-app.use(Express.static(__dirname + '/public'));
-
-var database, collection;
-
-// app.listen(5000, () => {
-//     console.log("server listens port: 5000")
-// });
 
 let users = [
     {username: "user_1", userId: 1613120611627, avatar: "/avatar1.png"},
@@ -52,21 +19,18 @@ let users = [
     {username: "user_12", userId: 1613120611638, avatar: "/avatar5.png"},
     {username: "user_13", userId: 1613120611639, avatar: "/avatar6.png"},
     {username: "user_14", userId: 1613120611640, avatar: "/avatar7.png"},
-]
+  ]
 
-var http = require('http').createServer(app);
-const PORT = 5000;
-var io = require('socket.io')(http);
-http.listen(PORT, () => {
-    console.log(`listening on *:${PORT}`);
+
+var app = Express();
+app.use(BodyParser.json({ limit: '10mb', extended: true }));
+app.use(function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "http://localhost:8080");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
 });
-
-io.on('connection', (socket) => { /* socket object may be used to send specific messages to the new connected client */
-
-    console.log('new client connected');
-});
-
-
+        
+app.use(Express.static(__dirname + '/public'));
 
 
 app.post('/authenticate', function (req, res) {
@@ -91,7 +55,6 @@ app.get('/getChannels', function (req, res) {
 });
 
 app.get('/getChannel', function (req, res) {
-    console.log('req.body getChannel', req.query)
     let user = users.find(user => user.userId == req.query.id)
     res.status(200).json(user);
     return
@@ -100,7 +63,6 @@ app.get('/getChannel', function (req, res) {
 
 
 app.get('/getMessages', function (req,res){
-    console.log('req.body', req.query)
     var dir = __dirname + '/messagesArchive';
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, 0744);
@@ -110,17 +72,14 @@ app.get('/getMessages', function (req,res){
     path = fs.existsSync(path + possiblePaths[0]) ? path + possiblePaths[0] : fs.existsSync(path + possiblePaths[1]) ? path + possiblePaths[1] : path + possiblePaths[0] 
     fs.readFile(path, "utf8", function(err, data){
         if(err){
-            console.log('err', err)
            return res.status(200).json([])
         }else{
-            console.log('data', data)
             return res.status(200).json(data)
         }
     })
 })
 
 app.post('/sendMessage', function (req, res){
-    console.log('req.body', req.body)
     let message = {
         message: req.body.message,
         sender: req.body.sender,
@@ -138,38 +97,34 @@ app.post('/sendMessage', function (req, res){
     if(jsonFile.length){
         jsonFile = JSON.parse(jsonFile)
     }
-    console.log('jsonFile', jsonFile)
     jsonFile.push(message)
+    io.sockets.emit("FromAPI", {ids:path, messages:jsonFile});
+
 
     fs.writeFile(path, JSON.stringify(jsonFile), function(err) {
         if (err) {
             return res.sendStatus(500)
-            // throw err
         };
-        console.log('message Sent');
         return res.sendStatus(200)
         }
     )
       
 })
 
-app.get('/logout', function (req, res) {
 
-    res.sendStatus(200);
-    return
 
+var http = require('http')
+var server = http.createServer(app);
+const PORT = 5000;
+const socketIo = require("socket.io");
+const io = socketIo(server, {
+    cors: {
+      origin: "http://localhost:8080",
+      methods: ["GET", "POST"]
+    }
+  });
+
+
+  server.listen(PORT, () => {
+    console.log(`listening on *:${PORT}`);
 });
-
-
-app.post(["/Categories"], 
-(request, response) => {
-    
-});
-
-app.get(["/Categories"], 
-(request, response) => {
-    
-    console.log(`fetched! from where`)
-    response.send("result");
-    
-})
